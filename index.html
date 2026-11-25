@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Four in a Row: Irregular Verbs (Own It! 1 Unit 7)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #fdf2f8 0%, #eef2ff 50%, #f0fdfa 100%);
+            min-height: 100vh;
+            user-select: none;
+        }
+        h1, h2, h3, .font-display {
+            font-family: 'Fredoka', sans-serif;
+        }
+        /* Custom animations */
+        @keyframes popIn {
+            0% { transform: scale(0.7); opacity: 0; }
+            70% { transform: scale(1.06); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes dropToken {
+            0% { transform: translateY(-180px) scale(0.8); opacity: 0.3; }
+            75% { transform: translateY(6px) scale(1.03); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7), inset 0 0 12px rgba(250, 204, 21, 0.6); transform: scale(1); }
+            50% { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0), inset 0 0 20px rgba(250, 204, 21, 0.9); transform: scale(1.03); }
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-pop {
+            animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .animate-drop {
+            animation: dropToken 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .winning-cell {
+            animation: pulseGlow 1.3s infinite ease-in-out !important;
+            border-color: #facc15 !important;
+            border-width: 3px !important;
+            z-index: 10;
+        }
+        .gravity-target {
+            box-shadow: 0 0 0 3px #818cf8, 0 6px 14px -3px rgba(99, 102, 241, 0.35);
+        }
+        .gravity-locked {
+            opacity: 0.62;
+        }
+        .gravity-locked:hover {
+            opacity: 0.95;
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-8">
+
+    <!-- Confetti Canvas -->
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- Header & Top Controls -->
+    <header class="bg-white/90 backdrop-blur-md shadow-sm border-b border-indigo-100 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- Title & Badge -->
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 flex items-center justify-center text-white text-2xl shadow-md">
+                    🎲
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+                            Four in a Row: Irregular Verbs
+                        </h1>
+                        <span class="hidden sm:inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                            Own It! 1 • Unit 7
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 font-semibold">42 Verbs • Past Simple (V2) Focus + V3 Rhythm Boost</p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Study / Warm-up Drawer Button -->
+                <button onclick="openStudyModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs sm:text-sm transition shadow-sm border border-amber-300">
+                    <span>📚</span>
+                    <span>Таблица 42 глаголов</span>
+                </button>
+
+                <!-- Russian Translation Toggle -->
+                <button id="ruToggleBtn" onclick="toggleRussian()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs sm:text-sm transition border border-indigo-200" title="Show/Hide Russian translation on board & cards">
+                    <span>🇷🇺</span>
+                    <span id="ruToggleText">RU: ON</span>
+                </button>
+
+                <!-- Sound Toggle -->
+                <button id="soundToggleBtn" onclick="toggleSound()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition border border-slate-200" title="Mute / Unmute Sound Effects">
+                    🔊
+                </button>
+
+                <!-- New Game Button -->
+                <button onclick="resetGame(true)" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs sm:text-sm transition shadow-md">
+                    <span>🔄</span>
+                    <span>New Game</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-2 sm:px-6 pt-4">
+
+        <!-- Settings Bar: Game Physics, Challenge Mode, Opponent, Colour Filter -->
+        <div class="bg-white/80 backdrop-blur rounded-2xl p-3 shadow-sm border border-indigo-100 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            
+            <!-- 1. Challenge Mode -->
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">
+                    🎯 Режим задания (Challenge)
+                </label>
+                <div class="grid grid-cols-3 gap-1">
+                    <button onclick="setChallengeMode('oral')" id="mode-oral" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm">
+                        🗣️ Устно
+                    </button>
+                    <button onclick="setChallengeMode('quiz')" id="mode-quiz" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100">
+                        ✨ Тест
+                    </button>
+                    <button onclick="setChallengeMode('type')" id="mode-type" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100">
+                        ⌨️ Письмо
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Board Physics Mode -->
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">
+                    🧩 Правила доски (Board Rule)
+                </label>
+                <div class="grid grid-cols-2 gap-1">
+                    <button onclick="setPhysicsMode('free')" id="phys-free" class="phys-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm" title="Click ANY cell on the board freely">
+                        👆 Любая клетка
+                    </button>
+                    <button onclick="setPhysicsMode('gravity')" id="phys-gravity" class="phys-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100" title="Tokens drop to the bottom of each column like classic Connect 4">
+                        ⬇️ Гравитация
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. Players / Opponent -->
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">
+                    👥 Игроки (Players)
+                </label>
+                <div class="grid grid-cols-2 gap-1">
+                    <button onclick="setOpponentMode('human')" id="opp-human" class="opp-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm">
+                        👩‍🏫 Ученик vs Учитель
+                    </button>
+                    <button onclick="setOpponentMode('bot')" id="opp-bot" class="opp-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100">
+                        🤖 Против Робота
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. Board Arrangement -->
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">
+                    🎨 Порядок глаголов на поле
+                </label>
+                <div class="grid grid-cols-2 gap-1">
+                    <button onclick="setSortMode('shuffled')" id="sort-shuffled" class="sort-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm">
+                        🔀 Вразброс
+                    </button>
+                    <button onclick="setSortMode('grouped')" id="sort-grouped" class="sort-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100">
+                        🌈 По карточкам (A-Z)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Scoreboard & Turn Indicator Banner -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            
+            <!-- Left Sidebar: Players & Score -->
+            <div class="lg:col-span-3 flex flex-col gap-3">
+                
+                <!-- Player 1 Card -->
+                <div id="p1Card" class="relative rounded-2xl p-4 bg-white border-2 border-pink-400 shadow-md transition-all">
+                    <div id="p1TurnBadge" class="absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full bg-pink-500 text-white text-[11px] font-extrabold uppercase tracking-wider shadow">
+                        Твой ход! ★
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="cycleAvatar(1)" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-2xl shadow-inner hover:scale-105 transition" title="Click to change icon">
+                            <span id="p1Avatar">🦄</span>
+                        </button>
+                        <div class="flex-1 min-w-0">
+                            <input id="p1NameInput" type="text" value="Student" onchange="updatePlayerNames()" class="font-display font-bold text-base text-slate-800 bg-transparent border-b border-dashed border-transparent hover:border-pink-300 focus:border-pink-500 focus:outline-none w-full truncate" />
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-lg border border-pink-200">
+                                    🏆 4-in-a-rows: <span id="p1Lines">0</span>
+                                </span>
+                                <span class="text-xs font-bold text-slate-500">
+                                    Клеток: <span id="p1Cells">0</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Player 2 Card -->
+                <div id="p2Card" class="relative rounded-2xl p-4 bg-white border-2 border-slate-200 shadow-sm transition-all opacity-85">
+                    <div id="p2TurnBadge" class="hidden absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full bg-teal-500 text-white text-[11px] font-extrabold uppercase tracking-wider shadow">
+                        Ход игрока! ★
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="cycleAvatar(2)" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-2xl shadow-inner hover:scale-105 transition" title="Click to change icon">
+                            <span id="p2Avatar">🦊</span>
+                        </button>
+                        <div class="flex-1 min-w-0">
+                            <input id="p2NameInput" type="text" value="Teacher" onchange="updatePlayerNames()" class="font-display font-bold text-base text-slate-800 bg-transparent border-b border-dashed border-transparent hover:border-teal-300 focus:border-teal-500 focus:outline-none w-full truncate" />
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-200">
+                                    🏆 4-in-a-rows: <span id="p2Lines">0</span>
+                                </span>
+                                <span class="text-xs font-bold text-slate-500">
+                                    Клеток: <span id="p2Cells">0</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Colour Group Legend / Quick Filter Highlight -->
+                <div class="bg-white rounded-2xl p-3.5 border border-indigo-100 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">🎨 Группы карточек</span>
+                        <button onclick="highlightGroup('all')" class="text-[11px] font-bold text-indigo-600 hover:underline">Показать все</button>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-bold">
+                        <button onclick="highlightGroup('orange')" id="filter-orange" class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 transition">
+                            <span>🟧 Choose – Fall</span>
+                            <span class="text-[11px] bg-white px-1.5 py-0.5 rounded-md">9</span>
+                        </button>
+                        <button onclick="highlightGroup('pink')" id="filter-pink" class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-900 border border-pink-200 transition">
+                            <span>🩷 Feel – Grow</span>
+                            <span class="text-[11px] bg-white px-1.5 py-0.5 rounded-md">9</span>
+                        </button>
+                        <button onclick="highlightGroup('green')" id="filter-green" class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition">
+                            <span>🟩 Have – Meet</span>
+                            <span class="text-[11px] bg-white px-1.5 py-0.5 rounded-md">8</span>
+                        </button>
+                        <button onclick="highlightGroup('purple')" id="filter-purple" class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 transition">
+                            <span>🟪 Pay – Send</span>
+                            <span class="text-[11px] bg-white px-1.5 py-0.5 rounded-md">8</span>
+                        </button>
+                        <button onclick="highlightGroup('coral')" id="filter-coral" class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 transition">
+                            <span>🪸 Sell – Swim</span>
+                            <span class="text-[11px] bg-white px-1.5 py-0.5 rounded-md">8</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Last Completed Verb Mini-Log -->
+                <div id="lastVerbBox" class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl p-3.5 shadow-md">
+                    <div class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-200 mb-1">
+                        ✨ Последний отвеченный глагол
+                    </div>
+                    <div id="lastVerbContent" class="text-xs text-indigo-100">
+                        Нажмите на любую клетку на поле, чтобы назвать 3 формы глагола и занять её!
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right / Main Area: 7x6 Connect 4 Board (42 Verbs) -->
+            <div class="lg:col-span-9">
+                <div class="bg-gradient-to-b from-indigo-900 via-indigo-950 to-slate-900 p-3 sm:p-4 rounded-3xl shadow-xl border-4 border-indigo-300/40">
+                    
+                    <!-- Column Numbers Header (1 - 7) -->
+                    <div class="grid grid-cols-7 gap-1.5 sm:gap-2.5 mb-2">
+                        <div onclick="handleColumnClick(0)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 1</div>
+                        <div onclick="handleColumnClick(1)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 2</div>
+                        <div onclick="handleColumnClick(2)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 3</div>
+                        <div onclick="handleColumnClick(3)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 4</div>
+                        <div onclick="handleColumnClick(4)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 5</div>
+                        <div onclick="handleColumnClick(5)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 6</div>
+                        <div onclick="handleColumnClick(6)" class="col-header cursor-pointer text-center py-1 rounded-xl bg-indigo-800/70 hover:bg-indigo-700 text-indigo-200 font-display font-bold text-xs sm:text-sm transition">Col 7</div>
+                    </div>
+
+                    <!-- 7x6 Grid Container -->
+                    <div id="boardGrid" class="grid grid-cols-7 gap-1.5 sm:gap-2.5">
+                        <!-- Generated dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ===================================================== -->
+    <!-- VERB CHALLENGE MODAL (Oral / Quiz / Type It)          -->
+    <!-- ===================================================== -->
+    <div id="challengeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden items-center justify-center p-3">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border-4 border-indigo-100 animate-pop relative max-h-[94vh] overflow-y-auto">
+            
+            <!-- Close Button -->
+            <button onclick="closeChallengeModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition">
+                ✕
+            </button>
+
+            <!-- Active Player Pill -->
+            <div id="modalPlayerBanner" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-3 bg-pink-100 text-pink-700">
+                <span id="modalPlayerIcon">🦄</span>
+                <span id="modalPlayerText">Student's Turn</span>
+            </div>
+
+            <!-- Verb Header Card -->
+            <div id="modalVerbHeader" class="rounded-2xl p-4 text-center border-2 mb-4 relative overflow-hidden">
+                <div class="text-4xl mb-1" id="modalEmoji">🎨</div>
+                <div class="flex items-center justify-center gap-2">
+                    <h2 id="modalV1" class="text-3xl sm:text-4xl font-display font-bold text-slate-800">Choose</h2>
+                    <button onclick="speakCurrentVerb(true)" class="w-9 h-9 rounded-xl bg-white/90 hover:bg-white text-indigo-600 shadow-sm flex items-center justify-center text-lg transition" title="Listen to V1">
+                        🔊
+                    </button>
+                </div>
+                <p id="modalRu" class="text-sm font-bold text-slate-600 mt-0.5">выбирать</p>
+                <span id="modalPatternBadge" class="inline-block mt-2 text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-white/80 text-slate-700 border border-slate-200">
+                    Pattern: A - B - C
+                </span>
+            </div>
+
+            <!-- Past Simple Context Sentence / Speaking Prompt -->
+            <div class="bg-amber-50/90 border border-amber-200 rounded-2xl p-3.5 mb-4">
+                <div class="flex items-center justify-between text-xs font-extrabold text-amber-800 uppercase tracking-wider mb-1">
+                    <span>🌟 Past Simple Focus (Unit 7)</span>
+                    <button onclick="cyclePrompt()" class="text-indigo-600 hover:underline lowercase font-bold">🔄 другой пример</button>
+                </div>
+                <p id="modalSentencePrompt" class="text-sm sm:text-base font-bold text-slate-800"></p>
+            </div>
+
+            <!-- ==================================== -->
+            <!-- MODE 1: ORAL / TEACHER CHECK SECTION -->
+            <!-- ==================================== -->
+            <div id="sectionOral" class="space-y-4">
+                <div class="text-center">
+                    <p class="text-xs font-bold text-slate-500 mb-2">
+                        Назови 2-ю форму (<span class="text-indigo-600">Past Simple</span>) и 3-ю форму (<span class="text-purple-600">на будущее!</span>):
+                    </p>
+                    <button id="revealAnswerBtn" onclick="revealOralAnswer()" class="w-full py-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-display font-bold text-base border-2 border-dashed border-indigo-300 transition flex items-center justify-center gap-2">
+                        <span>👀</span>
+                        <span>Показать ответ (Show V1 – V2 – V3)</span>
+                    </button>
+                </div>
+
+                <!-- Revealed Forms Box -->
+                <div id="oralAnswerBox" class="hidden space-y-3 animate-pop">
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <button type="button" onclick="speakSingleForm(1)" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition group cursor-pointer" title="Нажми, чтобы послушать V1">
+                            <div class="text-[10px] font-extrabold uppercase text-slate-400">V1 • Base 🔊</div>
+                            <div id="ansV1" class="text-base sm:text-lg font-display font-bold text-slate-700 mt-0.5">Choose</div>
+                            <div id="ansTransV1" class="text-[11px] font-bold text-slate-500 hidden">/riːd/</div>
+                        </button>
+                        <button type="button" onclick="speakSingleForm(2)" class="p-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 border-2 border-amber-400 shadow-sm relative transition group cursor-pointer" title="Нажми, чтобы послушать V2 (Past Simple)">
+                            <div class="text-[10px] font-extrabold uppercase text-amber-800">🌟 V2 • Past Simple 🔊</div>
+                            <div id="ansV2" class="text-lg sm:text-xl font-display font-bold text-amber-950 mt-0.5">Chose</div>
+                            <div id="ansTransV2" class="text-[11px] font-bold text-rose-600 hidden">/red/</div>
+                        </button>
+                        <button type="button" onclick="speakSingleForm(3)" class="p-2.5 rounded-xl bg-purple-100 hover:bg-purple-200 border border-purple-300 transition group cursor-pointer" title="Нажми, чтобы послушать V3">
+                            <div class="text-[10px] font-extrabold uppercase text-purple-700">🚀 V3 • Future 🔊</div>
+                            <div id="ansV3" class="text-base sm:text-lg font-display font-bold text-purple-900 mt-0.5">Chosen</div>
+                            <div id="ansTransV3" class="text-[11px] font-bold text-rose-600 hidden">/red/</div>
+                        </button>
+                    </div>
+
+                    <div id="pronunciationNote" class="hidden text-center text-xs font-bold text-rose-700 bg-rose-50 py-2 px-3 rounded-xl border border-rose-200">
+                        💡 Пишется одинаково, но читается по-разному: <b>Read /riːd/ – Read /red/ – Read /red/</b> (как красный цвет 🍓!). Нажми на любую карточку выше, чтобы послушать отдельно!
+                    </div>
+
+                    <button type="button" onclick="speakCurrentVerb(false)" class="w-full py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                        <span>🔊</span>
+                        <span>Прослушать все 3 формы (Listen V1 - V2 - V3)</span>
+                    </button>
+                </div>
+
+                <!-- Teacher / Self-Check Action Buttons -->
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button onclick="completeChallenge(false)" class="py-3 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-display font-bold text-sm border border-rose-200 transition">
+                        ❌ Ещё подучить (Skip)
+                    </button>
+                    <button onclick="completeChallenge(true)" class="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-display font-bold text-sm shadow-md transition">
+                        ✅ Верно! Занять клетку
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==================================== -->
+            <!-- MODE 2: MULTIPLE CHOICE QUIZ SECTION -->
+            <!-- ==================================== -->
+            <div id="sectionQuiz" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-extrabold uppercase text-amber-700 mb-1.5">
+                        🌟 Шаг 1: Выбери V2 (Past Simple — 2-я форма):
+                    </label>
+                    <div id="quizV2Options" class="grid grid-cols-2 gap-2"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold uppercase text-purple-700 mb-1.5">
+                        🚀 Шаг 2: Выбери V3 (3-я форма для ритма):
+                    </label>
+                    <div id="quizV3Options" class="grid grid-cols-2 gap-2"></div>
+                </div>
+
+                <div id="quizFeedback" class="hidden text-center text-sm font-bold py-2 px-3 rounded-xl"></div>
+
+                <button id="quizSubmitBtn" onclick="checkQuizAnswer()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-display font-bold text-base shadow-md transition">
+                    Проверить ответ ✨
+                </button>
+            </div>
+
+            <!-- ==================================== -->
+            <!-- MODE 3: TYPE IT SECTION              -->
+            <!-- ==================================== -->
+            <div id="sectionType" class="hidden space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-amber-50 p-3 rounded-2xl border-2 border-amber-300">
+                        <label class="block text-xs font-extrabold uppercase text-amber-900 mb-1">
+                            🌟 V2 (Past Simple) *
+                        </label>
+                        <input id="typeV2Input" type="text" autocomplete="off" placeholder="Напиши 2-ю форму..." class="w-full px-3 py-2 rounded-xl border border-amber-300 font-display font-bold text-base focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-2xl border border-purple-200">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-extrabold uppercase text-purple-900">
+                                🚀 V3 (3-я форма)
+                            </label>
+                            <button onclick="fillHintV3()" type="button" class="text-[11px] font-bold text-purple-600 hover:underline">
+                                подсказка V3
+                            </button>
+                        </div>
+                        <input id="typeV3Input" type="text" autocomplete="off" placeholder="Напиши 3-ю форму..." class="w-full px-3 py-2 rounded-xl border border-purple-300 font-display font-bold text-base focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                </div>
+
+                <div id="typeFeedback" class="hidden text-center text-sm font-bold py-2 px-3 rounded-xl"></div>
+
+                <button onclick="checkTypeAnswer()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-display font-bold text-base shadow-md transition">
+                    Проверить правописание ✍️
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- WIN / 4-IN-A-ROW CELEBRATION MODAL                    -->
+    <!-- ===================================================== -->
+    <div id="winModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border-4 border-amber-300 animate-pop">
+            <div class="text-6xl mb-2" id="winEmoji">🏆</div>
+            <h2 id="winTitle" class="text-3xl font-display font-bold text-slate-800">Four in a Row!</h2>
+            <p id="winSubtitle" class="text-base font-bold text-slate-600 mt-1 mb-4">
+                Отличная работа! Собрана линия из 4 глаголов!
+            </p>
+            <div id="winVerbsRecap" class="bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-5 text-left text-xs space-y-1.5">
+                <!-- Populated with the 4 winning verbs -->
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeWinModalAndContinue()" class="py-3 px-4 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-display font-bold text-sm transition">
+                    ▶️ Играть дальше на этом поле
+                </button>
+                <button onclick="resetGame(true); closeWinModalAndContinue();" class="py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-display font-bold text-sm shadow-md transition">
+                    🔄 Новая игра
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- STUDY / FLASHCARD REFERENCE DRAWER MODAL (42 VERBS)   -->
+    <!-- ===================================================== -->
+    <div id="studyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden items-center justify-center p-3 sm:p-6">
+        <div class="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border-4 border-amber-200 animate-pop overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="p-4 sm:px-6 bg-gradient-to-r from-amber-50 via-indigo-50 to-pink-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-display font-bold text-slate-800">
+                        📚 Все 42 неправильных глагола (Own It! 1 Unit 7)
+                    </h2>
+                    <p class="text-xs font-bold text-slate-500">
+                        Нажми на любой глагол, чтобы услышать произношение всех трёх форм!
+                    </p>
+                </div>
+                <button onclick="closeStudyModal()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm transition">
+                    ✕ Закрыть
+                </button>
+            </div>
+
+            <!-- Filter Bar inside Study Modal -->
+            <div class="px-4 sm:px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-2 text-xs font-bold">
+                <span class="text-slate-400 uppercase font-extrabold">Фильтр:</span>
+                <button onclick="renderStudyList('all')" class="study-tab px-3 py-1 rounded-lg bg-indigo-600 text-white">Все (42)</button>
+                <button onclick="renderStudyList('AAA')" class="study-tab px-3 py-1 rounded-lg bg-white border hover:bg-slate-100">🔥 Все 3 одинаковые (Cost-Cost-Cost)</button>
+                <button onclick="renderStudyList('ABB')" class="study-tab px-3 py-1 rounded-lg bg-white border hover:bg-slate-100">✨ V2 = V3 (Feel-Felt-Felt)</button>
+                <button onclick="renderStudyList('ABC')" class="study-tab px-3 py-1 rounded-lg bg-white border hover:bg-slate-100">🌈 Все 3 разные (Sing-Sang-Sung)</button>
+                <button onclick="renderStudyList('ABA')" class="study-tab px-3 py-1 rounded-lg bg-white border hover:bg-slate-100">🪃 V1 = V3 (Come-Came-Come)</button>
+            </div>
+
+            <!-- Scrollable Table Grid -->
+            <div id="studyListContainer" class="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. ALL 42 IRREGULAR VERBS FROM THE 5 SCREENSHOTS (Own It! 1 Unit 7)
+        // =========================================================================
+        const VERBS_DATA = [
+            // --- IMAGE 3: ORANGE GROUP (Choose - Fall) ---
+            { id: 1, v1: "Choose", v2: "Chose", v3: "Chosen", ru: "выбирать", emoji: "🎯", group: "orange", pattern: "ABC", pastEx: "Yesterday I <b>chose</b> a present for my best friend.", qEx: "What film did you <b>choose</b> yesterday?" },
+            { id: 2, v1: "Come", v2: "Came", v3: "Come", ru: "приходить", emoji: "🏃‍♀️", group: "orange", pattern: "ABA", pastEx: "She <b>came</b> home at 4 o'clock yesterday.", qEx: "What time did you <b>come</b> home yesterday?" },
+            { id: 3, v1: "Cost", v2: "Cost", v3: "Cost", ru: "стоить", emoji: "💰", group: "orange", pattern: "AAA", pastEx: "The new game <b>cost</b> ten pounds.", qEx: "How much did your backpack <b>cost</b>?" },
+            { id: 4, v1: "Do", v2: "Did", v3: "Done", ru: "делать", emoji: "✅", group: "orange", pattern: "ABC", pastEx: "I <b>did</b> my English homework yesterday evening.", qEx: "What did you <b>do</b> last weekend?" },
+            { id: 5, v1: "Draw", v2: "Drew", v3: "Drawn", ru: "рисовать", emoji: "🎨", group: "orange", pattern: "ABC", pastEx: "She <b>drew</b> a cute cat in her notebook.", qEx: "What did you <b>draw</b> in Art class?" },
+            { id: 6, v1: "Drink", v2: "Drank", v3: "Drunk", ru: "пить", emoji: "🧃", group: "orange", pattern: "ABC", pastEx: "He <b>drank</b> a big glass of orange juice.", qEx: "Did you <b>drink</b> tea or cocoa this morning?" },
+            { id: 7, v1: "Drive", v2: "Drove", v3: "Driven", ru: "водить (машину)", emoji: "🚗", group: "orange", pattern: "ABC", pastEx: "My dad <b>drove</b> us to the park on Sunday.", qEx: "Where did your family <b>drive</b> last summer?" },
+            { id: 8, v1: "Eat", v2: "Ate", v3: "Eaten", ru: "есть, кушать", emoji: "🍕", group: "orange", pattern: "ABC", pastEx: "We <b>ate</b> delicious pizza for dinner.", qEx: "What did you <b>eat</b> for breakfast today?" },
+            { id: 9, v1: "Fall", v2: "Fell", v3: "Fallen", ru: "падать", emoji: "🍂", group: "orange", pattern: "ABC", pastEx: "The autumn leaves <b>fell</b> from the trees.", qEx: "Did snow <b>fall</b> in your city last winter?" },
+
+            // --- IMAGE 4: PINK GROUP (Feel - Grow) ---
+            { id: 10, v1: "Feel", v2: "Felt", v3: "Felt", ru: "чувствовать", emoji: "😊", group: "pink", pattern: "ABB", pastEx: "I <b>felt</b> very happy after the lesson!", qEx: "How did you <b>feel</b> yesterday?" },
+            { id: 11, v1: "Fight", v2: "Fought", v3: "Fought", ru: "сражаться, драться", emoji: "⚔️", group: "pink", pattern: "ABB", pastEx: "The knights <b>fought</b> a giant dragon in the story.", qEx: "Who did the superhero <b>fight</b> in the movie?" },
+            { id: 12, v1: "Find", v2: "Found", v3: "Found", ru: "находить", emoji: "🔍", group: "pink", pattern: "ABB", pastEx: "She <b>found</b> a shiny shell on the beach.", qEx: "Did you ever <b>find</b> something cool outside?" },
+            { id: 13, v1: "Fly", v2: "Flew", v3: "Flown", ru: "летать", emoji: "✈️", group: "pink", pattern: "ABC", pastEx: "A colourful parrot <b>flew</b> over the trees.", qEx: "Where did you <b>fly</b> on an aeroplane?" },
+            { id: 14, v1: "Forget", v2: "Forgot", v3: "Forgotten", ru: "забывать", emoji: "🙊", group: "pink", pattern: "ABC", pastEx: "Oops! I <b>forgot</b> my umbrella at home.", qEx: "Did you <b>forget</b> anything yesterday?" },
+            { id: 15, v1: "Get", v2: "Got", v3: "Got", ru: "получать, добираться", emoji: "🎁", group: "pink", pattern: "ABB", pastEx: "I <b>got</b> a cool message from my friend.", qEx: "What presents did you <b>get</b> on your birthday?" },
+            { id: 16, v1: "Give", v2: "Gave", v3: "Given", ru: "давать", emoji: "💐", group: "pink", pattern: "ABC", pastEx: "She <b>gave</b> her mum a beautiful flower.", qEx: "What did you <b>give</b> your friend for their birthday?" },
+            { id: 17, v1: "Go", v2: "Went", v3: "Gone", ru: "идти, ехать", emoji: "🚀", group: "pink", pattern: "ABC", pastEx: "Last Saturday we <b>went</b> to the cinema.", qEx: "Where did you <b>go</b> last weekend?" },
+            { id: 18, v1: "Grow", v2: "Grew", v3: "Grown", ru: "расти, выращивать", emoji: "🌻", group: "pink", pattern: "ABC", pastEx: "My grandma <b>grew</b> sweet strawberries in the garden.", qEx: "Did you <b>grow</b> any plants at home?" },
+
+            // --- IMAGE 5: GREEN GROUP (Have - Meet) ---
+            { id: 19, v1: "Have", v2: "Had", v3: "Had", ru: "иметь", emoji: "🎉", group: "green", pattern: "ABB", pastEx: "We <b>had</b> a great time at the party!", qEx: "How many lessons did you <b>have</b> yesterday?" },
+            { id: 20, v1: "Hear", v2: "Heard", v3: "Heard", ru: "слышать", emoji: "👂", group: "green", pattern: "ABB", pastEx: "I <b>heard</b> a funny bird singing outside.", qEx: "What song did you <b>hear</b> today?" },
+            { id: 21, v1: "Keep", v2: "Kept", v3: "Kept", ru: "хранить, держать", emoji: "🗝️", group: "green", pattern: "ABB", pastEx: "She <b>kept</b> her secret in a diary.", qEx: "Where did you <b>keep</b> your favourite toys?" },
+            { id: 22, v1: "Know", v2: "Knew", v3: "Known", ru: "знать", emoji: "💡", group: "green", pattern: "ABC", pastEx: "She <b>knew</b> all the answers in the quiz!", qEx: "Did you <b>know</b> this English word before?" },
+            { id: 23, v1: "Leave", v2: "Left", v3: "Left", ru: "уходить, оставлять", emoji: "🚪", group: "green", pattern: "ABB", pastEx: "The train <b>left</b> the station at 5 o'clock.", qEx: "What time did you <b>leave</b> school yesterday?" },
+            { id: 24, v1: "Lose", v2: "Lost", v3: "Lost", ru: "терять", emoji: "🧤", group: "green", pattern: "ABB", pastEx: "He <b>lost</b> his favourite pencil at school.", qEx: "Did you ever <b>lose</b> your keys or gloves?" },
+            { id: 25, v1: "Make", v2: "Made", v3: "Made", ru: "делать, мастерить", emoji: "🧁", group: "green", pattern: "ABB", pastEx: "We <b>made</b> chocolate cupcakes together!", qEx: "What did you <b>make</b> with your hands?" },
+            { id: 26, v1: "Meet", v2: "Met", v3: "Met", ru: "встречать(ся)", emoji: "🤝", group: "green", pattern: "ABB", pastEx: "I <b>met</b> my friends at the playground.", qEx: "Who did you <b>meet</b> last weekend?" },
+
+            // --- IMAGE 1: PURPLE GROUP (Pay - Send) ---
+            { id: 27, v1: "Pay", v2: "Paid", v3: "Paid", ru: "платить", emoji: "💳", group: "purple", pattern: "ABB", pastEx: "Mum <b>paid</b> for the ice cream at the shop.", qEx: "Did you <b>pay</b> with coins or a card?" },
+            { id: 28, v1: "Put", v2: "Put", v3: "Put", ru: "класть, ставить", emoji: "📥", group: "purple", pattern: "AAA", pastEx: "I <b>put</b> my books into my schoolbag.", qEx: "Where did you <b>put</b> your phone?" },
+            { id: 29, v1: "Read", v2: "Read", v3: "Read", ttsV1: "reed", ttsV2: "red", ttsV3: "red", transV1: "/riːd/", transV2: "/red/", transV3: "/red/", ru: "читать", emoji: "📖", group: "purple", pattern: "AAA", note: "/riːd/ – /red/ – /red/", pastEx: "Last night I <b>read</b> (/red/) an exciting comic book.", qEx: "What book did you <b>read</b> (/riːd/) last month?" },
+            { id: 30, v1: "Ride", v2: "Rode", v3: "Ridden", ru: "кататься (верхом, на велосипеде)", emoji: "🚲", group: "purple", pattern: "ABC", pastEx: "She <b>rode</b> her bike in the sunny park.", qEx: "Did you <b>ride</b> a bike or a scooter last summer?" },
+            { id: 31, v1: "Run", v2: "Ran", v3: "Run", ru: "бегать", emoji: "👟", group: "purple", pattern: "ABA", pastEx: "The puppy <b>ran</b> very fast across the grass.", qEx: "How fast did you <b>run</b> in PE class?" },
+            { id: 32, v1: "Say", v2: "Said", v3: "Said", ru: "сказать, говорить", emoji: "💬", group: "purple", pattern: "ABB", pastEx: "Everyone <b>said</b> 'Hello!' to the teacher.", qEx: "What did you <b>say</b> to your best friend today?" },
+            { id: 33, v1: "See", v2: "Saw", v3: "Seen", ru: "видеть", emoji: "👀", group: "purple", pattern: "ABC", pastEx: "We <b>saw</b> a bright rainbow in the sky!", qEx: "What interesting things did you <b>see</b> yesterday?" },
+            { id: 34, v1: "Send", v2: "Sent", v3: "Sent", ru: "отправлять, посылать", emoji: "✉️", group: "purple", pattern: "ABB", pastEx: "I <b>sent</b> a funny sticker to my friend.", qEx: "Who did you <b>send</b> a message to today?" },
+
+            // --- IMAGE 2: CORAL GROUP (Sell - Swim) ---
+            { id: 35, v1: "Sell", v2: "Sold", v3: "Sold", ru: "продавать", emoji: "🏪", group: "coral", pattern: "ABB", pastEx: "The bakery <b>sold</b> fresh croissants this morning.", qEx: "What did the shop <b>sell</b>?" },
+            { id: 36, v1: "Sing", v2: "Sang", v3: "Sung", ru: "петь", emoji: "🎤", group: "coral", pattern: "ABC", pastEx: "She <b>sang</b> her favourite English song.", qEx: "What song did you <b>sing</b> recently?" },
+            { id: 37, v1: "Sit", v2: "Sat", v3: "Sat", ru: "сидеть", emoji: "🪑", group: "coral", pattern: "ABB", pastEx: "The cat <b>sat</b> on the warm sofa.", qEx: "Who did you <b>sit</b> next to at school?" },
+            { id: 38, v1: "Sleep", v2: "Slept", v3: "Slept", ru: "спать", emoji: "😴", group: "coral", pattern: "ABB", pastEx: "I <b>slept</b> for nine hours last night.", qEx: "Did you <b>sleep</b> well last night?" },
+            { id: 39, v1: "Speak", v2: "Spoke", v3: "Spoken", ru: "говорить, разговаривать", emoji: "🗣️", group: "coral", pattern: "ABC", pastEx: "We <b>spoke</b> English for the whole lesson!", qEx: "Who did you <b>speak</b> to this morning?" },
+            { id: 40, v1: "Spend", v2: "Spent", v3: "Spent", ru: "тратить, проводить (время)", emoji: "⏳", group: "coral", pattern: "ABB", pastEx: "We <b>spent</b> the holidays by the sea.", qEx: "How did you <b>spend</b> last Sunday?" },
+            { id: 41, v1: "Steal", v2: "Stole", v3: "Stolen", ru: "красть, воровать", emoji: "🦊", group: "coral", pattern: "ABC", pastEx: "A cheeky squirrel <b>stole</b> a nut from the basket!", qEx: "What did the pirate <b>steal</b> in the story?" },
+            { id: 42, v1: "Swim", v2: "Swam", v3: "Swum", ru: "плавать", emoji: "🐬", group: "coral", pattern: "ABC", pastEx: "We <b>swam</b> in the swimming pool on Friday.", qEx: "Where did you <b>swim</b> last summer?" }
+        ];
+
+        // =========================================================================
+        // 2. GAME STATE & CONFIGURATION
+        // =========================================================================
+        const ROWS = 6;
+        const COLS = 7;
+        let board = []; // 6x7 array of cell objects
+        let currentPlayer = 1; // 1 or 2
+        let challengeMode = 'oral'; // 'oral' | 'quiz' | 'type'
+        let physicsMode = 'free'; // 'free' | 'gravity'
+        let opponentMode = 'human'; // 'human' | 'bot'
+        let sortMode = 'shuffled'; // 'shuffled' | 'grouped'
+        let showRussian = true;
+        let soundEnabled = true;
+        let highlightedGroup = 'all';
+
+        let activeCellCoords = null; // { r, c }
+        let showQuestionPrompt = false;
+        let selectedQuizV2 = null;
+        let selectedQuizV3 = null;
+
+        let winningLinesFound = []; // Track already-celebrated 4-in-a-row lines so players can keep playing!
+        let scores = { 1: { lines: 0, cells: 0 }, 2: { lines: 0, cells: 0 } };
+
+        const AVATARS = ['🦄', '🦊', '🐼', '🐱', '🦁', '🐸', '🦋', '🚀', '⭐', '🦖'];
+        let playerAvatars = { 1: '🦄', 2: '🦊' };
+
+        // Group styling helpers matching the teacher's screenshot colors
+        const GROUP_STYLES = {
+            orange: { bg: "bg-orange-50 hover:bg-orange-100", border: "border-orange-200", pill: "bg-orange-200/80 text-orange-900" },
+            pink:   { bg: "bg-pink-50 hover:bg-pink-100",     border: "border-pink-200",   pill: "bg-pink-200/80 text-pink-900" },
+            green:  { bg: "bg-emerald-50 hover:bg-emerald-100", border: "border-emerald-200", pill: "bg-emerald-200/80 text-emerald-900" },
+            purple: { bg: "bg-purple-50 hover:bg-purple-100", border: "border-purple-200", pill: "bg-purple-200/80 text-purple-900" },
+            coral:  { bg: "bg-rose-50 hover:bg-rose-100",     border: "border-rose-200",   pill: "bg-rose-200/80 text-rose-900" }
+        };
+
+        // =========================================================================
+        // 3. WEB AUDIO API SOUND EFFECTS (No external audio files required)
+        // =========================================================================
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioCtx();
+                if (ctx.state === 'suspended') ctx.resume();
+
+                const now = ctx.currentTime;
+                if (type === 'click') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(680, now + 0.08);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.09);
+                } else if (type === 'success') {
+                    const notes = [523.25, 659.25, 783.99, 1046.5];
+                    notes.forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + i * 0.07);
+                        gain.gain.setValueAtTime(0.15, now + i * 0.07);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.22);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + i * 0.07);
+                        osc.stop(now + i * 0.07 + 0.24);
+                    });
+                } else if (type === 'error') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(150, now + 0.22);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'win') {
+                    const melody = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+                    melody.forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + i * 0.11);
+                        gain.gain.setValueAtTime(0.2, now + i * 0.11);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.3);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + i * 0.11);
+                        osc.stop(now + i * 0.11 + 0.32);
+                    });
+                }
+            } catch (e) {
+                // Ignore audio errors
+            }
+        }
+
+        // Speech Synthesis for Verb Pronunciation
+        let speechTimers = [];
+
+        function clearSpeechQueue() {
+            speechTimers.forEach(t => clearTimeout(t));
+            speechTimers = [];
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function createEnglishUtterance(phoneticText) {
+            const utter = new SpeechSynthesisUtterance(phoneticText);
+            utter.lang = 'en-GB';
+            utter.rate = 0.88;
+            const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+            const preferredVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB') || voices.find(v => v.lang.startsWith('en'));
+            if (preferredVoice) utter.voice = preferredVoice;
+            return utter;
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            clearSpeechQueue();
+            window.speechSynthesis.speak(createEnglishUtterance(text));
+        }
+
+        // Phonetic helper that ALWAYS uses ttsV1/ttsV2/ttsV3 (so "Read" -> "reed" / "red" / "red")
+        function speakVerbForms(verb, mode = 'all') {
+            if (!('speechSynthesis' in window) || !verb) return;
+            clearSpeechQueue();
+
+            const w1 = (verb.ttsV1 || verb.v1).toLowerCase();
+            const w2 = (verb.ttsV2 || verb.v2).toLowerCase();
+            const w3 = (verb.ttsV3 || verb.v3).toLowerCase();
+
+            if (mode === 1 || mode === 'v1') {
+                window.speechSynthesis.speak(createEnglishUtterance(w1));
+            } else if (mode === 2 || mode === 'v2') {
+                window.speechSynthesis.speak(createEnglishUtterance(w2));
+            } else if (mode === 3 || mode === 'v3') {
+                window.speechSynthesis.speak(createEnglishUtterance(w3));
+            } else {
+                // Speak all 3 forms sequentially as separate utterances so browser TTS never merges homographs
+                const forms = [w1, w2, w3];
+                forms.forEach((word, index) => {
+                    const timer = setTimeout(() => {
+                        window.speechSynthesis.speak(createEnglishUtterance(word));
+                    }, index * 700);
+                    speechTimers.push(timer);
+                });
+            }
+        }
+
+        function speakCurrentVerb(onlyV1 = false) {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            speakVerbForms(verb, onlyV1 ? 'v1' : 'all');
+        }
+
+        function speakSingleForm(formIndex) {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            speakVerbForms(verb, formIndex);
+        }
+
+        // =========================================================================
+        // 4. BOARD INITIALIZATION & RENDERING
+        // =========================================================================
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function resetGame(playSfx = false) {
+            if (playSfx) playSound('click');
+            const orderedVerbs = sortMode === 'shuffled' ? shuffleArray(VERBS_DATA) : [...VERBS_DATA];
+            board = [];
+            let idx = 0;
+            for (let r = 0; r < ROWS; r++) {
+                const row = [];
+                for (let c = 0; c < COLS; c++) {
+                    row.push({
+                        r,
+                        c,
+                        verb: orderedVerbs[idx++],
+                        owner: 0, // 0 = empty, 1 = Player 1, 2 = Player 2
+                        isWinning: false
+                    });
+                }
+                board.push(row);
+            }
+            currentPlayer = 1;
+            winningLinesFound = [];
+            scores = { 1: { lines: 0, cells: 0 }, 2: { lines: 0, cells: 0 } };
+            updateScoreUI();
+            renderBoard();
+        }
+
+        function getLowestAvailableRow(col) {
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (board[r][col].owner === 0) return r;
+            }
+            return -1;
+        }
+
+        function renderBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = board[r][c];
+                    const v = cell.verb;
+                    const groupStyle = GROUP_STYLES[v.group];
+                    const lowestRow = getLowestAvailableRow(c);
+
+                    const isTargetInGravity = physicsMode === 'gravity' && cell.owner === 0 && r === lowestRow;
+                    const isLockedInGravity = physicsMode === 'gravity' && cell.owner === 0 && r !== lowestRow;
+
+                    const isDimmedByFilter = highlightedGroup !== 'all' && v.group !== highlightedGroup;
+
+                    const cellEl = document.createElement('button');
+                    cellEl.type = 'button';
+                    cellEl.onclick = () => handleCellClick(r, c);
+
+                    let baseClasses = "relative rounded-2xl p-1.5 sm:p-2 min-h-[70px] sm:min-h-[84px] flex flex-col items-center justify-between border-2 transition-all duration-200 select-none ";
+
+                    if (cell.owner === 0) {
+                        baseClasses += `${groupStyle.bg} ${groupStyle.border} hover:-translate-y-0.5 hover:shadow-md `;
+                        if (isTargetInGravity) baseClasses += "gravity-target ";
+                        if (isLockedInGravity) baseClasses += "gravity-locked ";
+                    } else if (cell.owner === 1) {
+                        baseClasses += "bg-gradient-to-br from-pink-500 to-rose-500 text-white border-pink-200 shadow-md animate-drop ";
+                    } else if (cell.owner === 2) {
+                        baseClasses += "bg-gradient-to-br from-teal-500 to-emerald-600 text-white border-teal-200 shadow-md animate-drop ";
+                    }
+
+                    if (cell.isWinning) {
+                        baseClasses += "winning-cell ";
+                    }
+                    if (isDimmedByFilter) {
+                        baseClasses += "opacity-30 scale-95 ";
+                    }
+
+                    cellEl.className = baseClasses;
+
+                    if (cell.owner === 0) {
+                        // Unclaimed cell view
+                        cellEl.innerHTML = `
+                            <div class="w-full flex items-center justify-between text-[10px] font-bold opacity-75 px-0.5">
+                                <span>${v.emoji}</span>
+                                <span class="px-1 rounded ${groupStyle.pill}">${v.pattern}</span>
+                            </div>
+                            <div class="font-display font-bold text-sm sm:text-base md:text-lg text-slate-800 leading-tight my-0.5 tracking-tight">
+                                ${v.v1}
+                            </div>
+                            <div class="text-[10px] sm:text-[11px] font-bold text-slate-500 truncate w-full text-center ${showRussian ? '' : 'invisible'}">
+                                ${v.ru}
+                            </div>
+                        `;
+                    } else {
+                        // Claimed cell view: shows all 3 forms!
+                        const ownerAvatar = playerAvatars[cell.owner];
+                        cellEl.innerHTML = `
+                            <div class="w-full flex items-center justify-between text-[10px] font-extrabold px-0.5">
+                                <span>${ownerAvatar}</span>
+                                <span class="bg-white/25 px-1.5 rounded-full">✓</span>
+                            </div>
+                            <div class="font-display font-bold text-xs sm:text-sm leading-tight text-center">
+                                <div class="opacity-85">${v.v1}</div>
+                                <div class="text-amber-200 text-sm sm:text-base underline decoration-amber-300/70">${v.v2}</div>
+                                <div class="text-[11px] opacity-90">${v.v3}</div>
+                            </div>
+                        `;
+                    }
+
+                    grid.appendChild(cellEl);
+                }
+            }
+        }
+
+        // =========================================================================
+        // 5. INTERACTION & CHALLENGE FLOW
+        // =========================================================================
+        function handleColumnClick(col) {
+            const targetRow = getLowestAvailableRow(col);
+            if (targetRow !== -1) {
+                handleCellClick(targetRow, col);
+            }
+        }
+
+        function handleCellClick(r, c) {
+            // If playing vs Bot and it's Bot's turn, ignore manual clicks
+            if (opponentMode === 'bot' && currentPlayer === 2) return;
+
+            // In Gravity mode, clicking any cell in column C selects the lowest available cell in column C
+            let targetR = r;
+            if (physicsMode === 'gravity') {
+                const lowest = getLowestAvailableRow(c);
+                if (lowest === -1) return; // Column full
+                targetR = lowest;
+            }
+
+            const cell = board[targetR][c];
+            if (cell.owner !== 0) {
+                // Already claimed: pronounce all 3 forms using phonetic helper so student can review it anytime!
+                speakVerbForms(cell.verb, 'all');
+                return;
+            }
+
+            playSound('click');
+            activeCellCoords = { r: targetR, c };
+            openChallengeModal(cell.verb);
+        }
+
+        function openChallengeModal(verb) {
+            const modal = document.getElementById('challengeModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Update Player Banner
+            const pName = currentPlayer === 1 ? document.getElementById('p1NameInput').value : document.getElementById('p2NameInput').value;
+            const banner = document.getElementById('modalPlayerBanner');
+            banner.className = currentPlayer === 1
+                ? "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-3 bg-pink-100 text-pink-700"
+                : "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-3 bg-teal-100 text-teal-800";
+            document.getElementById('modalPlayerIcon').textContent = playerAvatars[currentPlayer];
+            document.getElementById('modalPlayerText').textContent = `Ход: ${pName}`;
+
+            // Update Verb Header
+            const groupStyle = GROUP_STYLES[verb.group];
+            const headerBox = document.getElementById('modalVerbHeader');
+            headerBox.className = `rounded-2xl p-4 text-center border-2 mb-4 relative overflow-hidden ${groupStyle.bg} ${groupStyle.border}`;
+
+            document.getElementById('modalEmoji').textContent = verb.emoji;
+            document.getElementById('modalV1').textContent = verb.v1;
+            const ruEl = document.getElementById('modalRu');
+            ruEl.textContent = verb.ru;
+            ruEl.classList.toggle('hidden', !showRussian);
+
+            const patternNames = {
+                'AAA': '🔥 Все 3 формы одинаковые (A-A-A)',
+                'ABB': '✨ 2-я и 3-я формы совпадают (A-B-B)',
+                'ABC': '🌈 Все 3 формы разные (A-B-C)',
+                'ABA': '🪃 1-я и 3-я формы совпадают (A-B-A)'
+            };
+            document.getElementById('modalPatternBadge').textContent = patternNames[verb.pattern] || verb.pattern;
+
+            // Prompt sentence
+            showQuestionPrompt = false;
+            updatePromptText(verb);
+
+            // Toggle active challenge section
+            document.getElementById('sectionOral').classList.toggle('hidden', challengeMode !== 'oral');
+            document.getElementById('sectionQuiz').classList.toggle('hidden', challengeMode !== 'quiz');
+            document.getElementById('sectionType').classList.toggle('hidden', challengeMode !== 'type');
+
+            if (challengeMode === 'oral') {
+                setupOralSection(verb);
+            } else if (challengeMode === 'quiz') {
+                setupQuizSection(verb);
+            } else if (challengeMode === 'type') {
+                setupTypeSection(verb);
+            }
+        }
+
+        function updatePromptText(verb) {
+            const promptEl = document.getElementById('modalSentencePrompt');
+            if ( challengeMode === 'oral' ) {
+                // In oral mode before reveal, hide the V2 in the affirmative example or show the question prompt
+                const maskedPast = verb.pastEx.replace(/<b>.*?<\/b>/i, '<span class="px-2 py-0.5 bg-amber-200 rounded text-amber-900">___ (V2) ___</span>');
+                promptEl.innerHTML = showQuestionPrompt
+                    ? `💬 Вопрос для разговора: "${verb.qEx}"`
+                    : `📝 Пример Past Simple: "${maskedPast}"`;
+            } else {
+                const maskedPast = verb.pastEx.replace(/<b>.*?<\/b>/i, '<span class="px-2 py-0.5 bg-amber-200 rounded text-amber-900">___ (V2) ___</span>');
+                promptEl.innerHTML = `📝 Вставь V2 в предложение: "${maskedPast}"`;
+            }
+        }
+
+        function cyclePrompt() {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            showQuestionPrompt = !showQuestionPrompt;
+            updatePromptText(verb);
+        }
+
+        // --- MODE 1: ORAL ---
+        function setupOralSection(verb) {
+            document.getElementById('oralAnswerBox').classList.add('hidden');
+            document.getElementById('revealAnswerBtn').classList.remove('hidden');
+            document.getElementById('ansV1').textContent = verb.v1;
+            document.getElementById('ansV2').textContent = verb.v2;
+            document.getElementById('ansV3').textContent = verb.v3;
+
+            const hasTrans = Boolean(verb.transV1);
+            const t1 = document.getElementById('ansTransV1');
+            const t2 = document.getElementById('ansTransV2');
+            const t3 = document.getElementById('ansTransV3');
+            t1.textContent = verb.transV1 || '';
+            t2.textContent = verb.transV2 || '';
+            t3.textContent = verb.transV3 || '';
+            t1.classList.toggle('hidden', !hasTrans);
+            t2.classList.toggle('hidden', !hasTrans);
+            t3.classList.toggle('hidden', !hasTrans);
+
+            document.getElementById('pronunciationNote').classList.toggle('hidden', verb.v1 !== 'Read');
+        }
+
+        function revealOralAnswer() {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            document.getElementById('revealAnswerBtn').classList.add('hidden');
+            document.getElementById('oralAnswerBox').classList.remove('hidden');
+            document.getElementById('modalSentencePrompt').innerHTML = `🌟 Пример: "${verb.pastEx}"`;
+            speakCurrentVerb(false);
+        }
+
+        // --- MODE 2: MULTIPLE CHOICE QUIZ ---
+        function generateDistractors(verb, formKey) {
+            const correct = verb[formKey];
+            const pool = new Set([correct]);
+
+            // Smart distractors (e.g., regular -ed trap, or other forms of same/similar verbs)
+            const edTrap = verb.v1.toLowerCase().endsWith('e') ? verb.v1 + 'd' : verb.v1 + 'ed';
+            pool.add(edTrap.charAt(0).toUpperCase() + edTrap.slice(1));
+
+            if (formKey === 'v2' && verb.v3 !== verb.v2) pool.add(verb.v3);
+            if (formKey === 'v3' && verb.v2 !== verb.v3) pool.add(verb.v2);
+            if (verb.v1 !== correct) pool.add(verb.v1);
+
+            const shuffledVerbs = shuffleArray(VERBS_DATA);
+            for (const item of shuffledVerbs) {
+                if (pool.size >= 4) break;
+                pool.add(item[formKey]);
+            }
+
+            return shuffleArray(Array.from(pool).slice(0, 4));
+        }
+
+        function setupQuizSection(verb) {
+            selectedQuizV2 = null;
+            selectedQuizV3 = null;
+            document.getElementById('quizFeedback').classList.add('hidden');
+
+            const v2Options = generateDistractors(verb, 'v2');
+            const v3Options = generateDistractors(verb, 'v3');
+
+            const v2Container = document.getElementById('quizV2Options');
+            v2Container.innerHTML = '';
+            v2Options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = "quiz-v2-btn py-2.5 px-3 rounded-xl font-display font-bold text-base border-2 border-slate-200 bg-slate-50 hover:bg-amber-50 text-slate-700 transition";
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    selectedQuizV2 = opt;
+                    document.querySelectorAll('.quiz-v2-btn').forEach(b => {
+                        b.className = "quiz-v2-btn py-2.5 px-3 rounded-xl font-display font-bold text-base border-2 border-slate-200 bg-slate-50 text-slate-700 transition";
+                    });
+                    btn.className = "quiz-v2-btn py-2.5 px-3 rounded-xl font-display font-bold text-base border-2 border-amber-500 bg-amber-100 text-amber-950 shadow-sm transition";
+                };
+                v2Container.appendChild(btn);
+            });
+
+            const v3Container = document.getElementById('quizV3Options');
+            v3Container.innerHTML = '';
+            v3Options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = "quiz-v3-btn py-2.5 px-3 rounded-xl font-display font-bold text-base border-2 border-slate-200 bg-slate-50 hover:bg-purple-50 text-slate-700 transition";
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    selectedQuizV3 = opt;
+                    document.querySelectorAll('.quiz-v3-btn').forEach(b => {
+                        b.className = "quiz-v3-btn py-2.5 px-3 rounded-xl font-display font-bold text-base border-2 border-slate-200 bg-slate-50 text-slate-700 transition";
+                    });
+                    btn.className = "quiz-v3-btn py-2.5 px-3 rounded-xl font-display font-bold text-base border-2 border-purple-500 bg-purple-100 text-purple-950 shadow-sm transition";
+                };
+                v3Container.appendChild(btn);
+            });
+        }
+
+        function checkQuizAnswer() {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            const fb = document.getElementById('quizFeedback');
+
+            if (!selectedQuizV2 || !selectedQuizV3) {
+                fb.textContent = "Пожалуйста, выбери и V2, и V3!";
+                fb.className = "text-center text-xs font-bold py-2 px-3 rounded-xl bg-amber-100 text-amber-800 block";
+                return;
+            }
+
+            if (selectedQuizV2 === verb.v2 && selectedQuizV3 === verb.v3) {
+                fb.innerHTML = `🎉 Супер! <b>${verb.v1} – ${verb.v2} – ${verb.v3}</b>`;
+                fb.className = "text-center text-sm font-bold py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 block";
+                speakCurrentVerb(false);
+                setTimeout(() => completeChallenge(true), 650);
+            } else {
+                playSound('error');
+                fb.innerHTML = `Почти! Правильный ответ: <b>${verb.v1} – ${verb.v2} – ${verb.v3}</b>. Попробуй нажать верные кнопки!`;
+                fb.className = "text-center text-xs font-bold py-2 px-3 rounded-xl bg-rose-100 text-rose-800 block";
+            }
+        }
+
+        // --- MODE 3: TYPE IT ---
+        function setupTypeSection(verb) {
+            const v2In = document.getElementById('typeV2Input');
+            const v3In = document.getElementById('typeV3Input');
+            v2In.value = '';
+            v3In.value = '';
+            document.getElementById('typeFeedback').classList.add('hidden');
+            setTimeout(() => v2In.focus(), 80);
+        }
+
+        function fillHintV3() {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            document.getElementById('typeV3Input').value = verb.v3;
+        }
+
+        function checkTypeAnswer() {
+            if (!activeCellCoords) return;
+            const verb = board[activeCellCoords.r][activeCellCoords.c].verb;
+            const v2Val = document.getElementById('typeV2Input').value.trim().toLowerCase();
+            const v3Val = document.getElementById('typeV3Input').value.trim().toLowerCase();
+            const fb = document.getElementById('typeFeedback');
+
+            const isV2Correct = v2Val === verb.v2.toLowerCase();
+            // Allow empty V3 if student only typed V2, or check V3 if typed
+            const isV3Correct = v3Val === verb.v3.toLowerCase();
+
+            if (isV2Correct && isV3Correct) {
+                fb.innerHTML = `🎉 Безупречно! <b>${verb.v1} – ${verb.v2} – ${verb.v3}</b>`;
+                fb.className = "text-center text-sm font-bold py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 block";
+                speakCurrentVerb(false);
+                setTimeout(() => completeChallenge(true), 650);
+            } else {
+                playSound('error');
+                fb.innerHTML = `Обрати внимание на написание: <b>${verb.v1} – <span class="underline">${verb.v2}</span> – <span class="underline">${verb.v3}</span></b>. Исправь и нажми ещё раз!`;
+                fb.className = "text-center text-xs font-bold py-2 px-3 rounded-xl bg-rose-100 text-rose-800 block";
+            }
+        }
+
+        function closeChallengeModal() {
+            const modal = document.getElementById('challengeModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            activeCellCoords = null;
+        }
+
+        // =========================================================================
+        // 6. CLAIMING CELLS, WIN DETECTION & BOT AI
+        // =========================================================================
+        function completeChallenge(isCorrect) {
+            if (!activeCellCoords) return;
+            const { r, c } = activeCellCoords;
+            const cell = board[r][c];
+            closeChallengeModal();
+
+            if (isCorrect) {
+                playSound('success');
+                cell.owner = currentPlayer;
+                scores[currentPlayer].cells++;
+                updateLastVerbBanner(cell.verb, currentPlayer);
+                renderBoard();
+
+                const newWins = checkNewFourInARow(currentPlayer);
+                if (newWins.length > 0) {
+                    scores[currentPlayer].lines += newWins.length;
+                    updateScoreUI();
+                    renderBoard();
+                    triggerWinCelebration(currentPlayer, newWins[0]);
+                    return; // Turn switches after closing celebration modal
+                }
+            } else {
+                playSound('error');
+            }
+
+            switchTurn();
+        }
+
+        function updateLastVerbBanner(verb, playerNum) {
+            const box = document.getElementById('lastVerbContent');
+            box.innerHTML = `
+                <div class="font-display font-bold text-sm sm:text-base text-white">
+                    ${verb.emoji} ${verb.v1} – <span class="text-amber-300 underline">${verb.v2}</span> – ${verb.v3}
+                </div>
+                <div class="text-[11px] text-indigo-100 mt-0.5">${verb.pastEx}</div>
+            `;
+        }
+
+        function switchTurn() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateScoreUI();
+
+            if (opponentMode === 'bot' && currentPlayer === 2) {
+                setTimeout(makeBotMove, 650);
+            }
+        }
+
+        function makeBotMove() {
+            // Collect valid coordinates based on physicsMode
+            const validMoves = [];
+            if (physicsMode === 'gravity') {
+                for (let c = 0; c < COLS; c++) {
+                    const r = getLowestAvailableRow(c);
+                    if (r !== -1) validMoves.push({ r, c });
+                }
+            } else {
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (board[r][c].owner === 0) validMoves.push({ r, c });
+                    }
+                }
+            }
+
+            if (validMoves.length === 0) return;
+
+            // Smart friendly bot:
+            // 1. Check if Bot can complete a 4-in-a-row
+            // 2. Check if Student is about to complete a 4-in-a-row (block 70% of the time so student still has fun!)
+            // 3. Otherwise pick a cell near the center
+            let chosen = findWinningMoveFor(2, validMoves);
+            if (!chosen && Math.random() < 0.7) {
+                chosen = findWinningMoveFor(1, validMoves);
+            }
+            if (!chosen) {
+                chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+
+            const cell = board[chosen.r][chosen.c];
+            cell.owner = 2;
+            scores[2].cells++;
+            playSound('click');
+            updateLastVerbBanner(cell.verb, 2);
+            speakVerbForms(cell.verb, 'all');
+            renderBoard();
+
+            const newWins = checkNewFourInARow(2);
+            if (newWins.length > 0) {
+                scores[2].lines += newWins.length;
+                updateScoreUI();
+                renderBoard();
+                triggerWinCelebration(2, newWins[0]);
+                return;
+            }
+
+            currentPlayer = 1;
+            updateScoreUI();
+        }
+
+        function findWinningMoveFor(playerNum, validMoves) {
+            for (const move of validMoves) {
+                board[move.r][move.c].owner = playerNum;
+                const wins = checkNewFourInARow(playerNum, true);
+                board[move.r][move.c].owner = 0;
+                if (wins.length > 0) return move;
+            }
+            return null;
+        }
+
+        function checkNewFourInARow(playerNum, dryRun = false) {
+            const directions = [
+                { dr: 0, dc: 1 },  // Horizontal
+                { dr: 1, dc: 0 },  // Vertical
+                { dr: 1, dc: 1 },  // Diagonal down-right
+                { dr: 1, dc: -1 }  // Diagonal down-left
+            ];
+            const newlyFound = [];
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c].owner !== playerNum) continue;
+
+                    for (const { dr, dc } of directions) {
+                        const coords = [];
+                        for (let step = 0; step < 4; step++) {
+                            const nr = r + dr * step;
+                            const nc = c + dc * step;
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc].owner === playerNum) {
+                                coords.push({ r: nr, c: nc });
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if (coords.length === 4) {
+                            const key = coords.map(pt => `${pt.r},${pt.c}`).join('|');
+                            if (!winningLinesFound.includes(key)) {
+                                newlyFound.push(coords);
+                                if (!dryRun) {
+                                    winningLinesFound.push(key);
+                                    coords.forEach(pt => { board[pt.r][pt.c].isWinning = true; });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return newlyFound;
+        }
+
+        function triggerWinCelebration(playerNum, winCoords) {
+            playSound('win');
+            launchConfetti();
+
+            const pName = playerNum === 1 ? document.getElementById('p1NameInput').value : document.getElementById('p2NameInput').value;
+            document.getElementById('winEmoji').textContent = playerAvatars[playerNum];
+            document.getElementById('winTitle').textContent = `${pName}: Four in a Row! 🎉`;
+
+            const recap = document.getElementById('winVerbsRecap');
+            recap.innerHTML = `<div class="font-extrabold text-amber-900 uppercase text-[11px] mb-1">🌟 Победная четвёрка глаголов:</div>`;
+            winCoords.forEach(pt => {
+                const v = board[pt.r][pt.c].verb;
+                recap.innerHTML += `
+                    <div class="flex items-center justify-between bg-white px-2.5 py-1 rounded-lg border border-amber-200 font-bold text-slate-700">
+                        <span>${v.emoji} ${v.v1} – <span class="text-indigo-600">${v.v2}</span> – <span class="text-purple-600">${v.v3}</span></span>
+                        <span class="text-slate-400 text-[11px]">${v.ru}</span>
+                    </div>
+                `;
+            });
+
+            const modal = document.getElementById('winModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeWinModalAndContinue() {
+            const modal = document.getElementById('winModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            switchTurn();
+        }
+
+        // =========================================================================
+        // 7. UI CONTROLS, FILTERS & STUDY MODAL
+        // =========================================================================
+        function updateScoreUI() {
+            document.getElementById('p1Lines').textContent = scores[1].lines;
+            document.getElementById('p1Cells').textContent = scores[1].cells;
+            document.getElementById('p2Lines').textContent = scores[2].lines;
+            document.getElementById('p2Cells').textContent = scores[2].cells;
+
+            const p1Card = document.getElementById('p1Card');
+            const p2Card = document.getElementById('p2Card');
+            const p1Badge = document.getElementById('p1TurnBadge');
+            const p2Badge = document.getElementById('p2TurnBadge');
+
+            if (currentPlayer === 1) {
+                p1Card.className = "relative rounded-2xl p-4 bg-white border-2 border-pink-500 shadow-md transition-all scale-[1.02]";
+                p2Card.className = "relative rounded-2xl p-4 bg-white border-2 border-slate-200 shadow-sm transition-all opacity-80";
+                p1Badge.classList.remove('hidden');
+                p2Badge.classList.add('hidden');
+            } else {
+                p1Card.className = "relative rounded-2xl p-4 bg-white border-2 border-slate-200 shadow-sm transition-all opacity-80";
+                p2Card.className = "relative rounded-2xl p-4 bg-white border-2 border-teal-500 shadow-md transition-all scale-[1.02]";
+                p1Badge.classList.add('hidden');
+                p2Badge.classList.remove('hidden');
+            }
+        }
+
+        function setChallengeMode(mode) {
+            challengeMode = mode;
+            playSound('click');
+            ['oral', 'quiz', 'type'].forEach(m => {
+                const btn = document.getElementById(`mode-${m}`);
+                btn.className = m === mode
+                    ? "mode-btn px-2 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm"
+                    : "mode-btn px-2 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100";
+            });
+        }
+
+        function setPhysicsMode(mode) {
+            physicsMode = mode;
+            playSound('click');
+            ['free', 'gravity'].forEach(m => {
+                const btn = document.getElementById(`phys-${m}`);
+                btn.className = m === mode
+                    ? "phys-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm"
+                    : "phys-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100";
+            });
+            renderBoard();
+        }
+
+        function setOpponentMode(mode) {
+            opponentMode = mode;
+            playSound('click');
+            ['human', 'bot'].forEach(m => {
+                const btn = document.getElementById(`opp-${m}`);
+                btn.className = m === mode
+                    ? "opp-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm"
+                    : "opp-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100";
+            });
+            const p2Input = document.getElementById('p2NameInput');
+            if (mode === 'bot') {
+                p2Input.value = "Robo-Fox 🤖";
+                playerAvatars[2] = '🤖';
+                document.getElementById('p2Avatar').textContent = '🤖';
+                if (currentPlayer === 2) setTimeout(makeBotMove, 400);
+            } else {
+                p2Input.value = "Teacher";
+                playerAvatars[2] = '🦊';
+                document.getElementById('p2Avatar').textContent = '🦊';
+            }
+        }
+
+        function setSortMode(mode) {
+            sortMode = mode;
+            ['shuffled', 'grouped'].forEach(m => {
+                const btn = document.getElementById(`sort-${m}`);
+                btn.className = m === mode
+                    ? "sort-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm"
+                    : "sort-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-600 hover:bg-slate-100";
+            });
+            resetGame(true);
+        }
+
+        function toggleRussian() {
+            showRussian = !showRussian;
+            document.getElementById('ruToggleText').textContent = showRussian ? 'RU: ON' : 'RU: OFF';
+            renderBoard();
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇';
+        }
+
+        function cycleAvatar(playerNum) {
+            const curr = playerAvatars[playerNum];
+            const nextIdx = (AVATARS.indexOf(curr) + 1) % AVATARS.length;
+            playerAvatars[playerNum] = AVATARS[nextIdx];
+            document.getElementById(`p${playerNum}Avatar`).textContent = playerAvatars[playerNum];
+            renderBoard();
+        }
+
+        function updatePlayerNames() {
+            updateScoreUI();
+        }
+
+        function highlightGroup(group) {
+            highlightedGroup = highlightedGroup === group ? 'all' : group;
+            renderBoard();
+        }
+
+        // --- STUDY MODAL ---
+        function openStudyModal() {
+            playSound('click');
+            const modal = document.getElementById('studyModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            renderStudyList('all');
+        }
+
+        function closeStudyModal() {
+            const modal = document.getElementById('studyModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function renderStudyList(filterPattern) {
+            const container = document.getElementById('studyListContainer');
+            container.innerHTML = '';
+
+            const filtered = filterPattern === 'all'
+                ? VERBS_DATA
+                : VERBS_DATA.filter(v => v.pattern === filterPattern);
+
+            filtered.forEach(v => {
+                const style = GROUP_STYLES[v.group];
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-2xl border-2 ${style.bg} ${style.border} flex items-center justify-between gap-2 cursor-pointer transition hover:shadow-md`;
+                card.onclick = () => {
+                    speakVerbForms(v, 'all');
+                };
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">${v.emoji}</span>
+                        <div>
+                            <div class="font-display font-bold text-base text-slate-800">
+                                ${v.v1} ${v.transV1 ? `<span class="text-xs text-slate-500 font-normal">${v.transV1}</span>` : ''} – <span class="text-indigo-700 underline decoration-amber-400 decoration-2">${v.v2}</span> ${v.transV2 ? `<span class="text-xs text-rose-600 font-bold">${v.transV2}</span>` : ''} – <span class="text-purple-700">${v.v3}</span> ${v.transV3 ? `<span class="text-xs text-rose-600 font-bold">${v.transV3}</span>` : ''}
+                            </div>
+                            <div class="text-xs font-bold text-slate-500">
+                                ${v.ru} ${v.note ? `<span class="text-rose-600 ml-1">(${v.note})</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-lg opacity-70 hover:opacity-100">🔊</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // =========================================================================
+        // 8. CONFETTI ANIMATION
+        // =========================================================================
+        function launchConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const pieces = Array.from({ length: 90 }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * -canvas.height * 0.5,
+                size: Math.random() * 8 + 5,
+                color: ['#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#3b82f6'][Math.floor(Math.random() * 5)],
+                speedY: Math.random() * 3 + 2.5,
+                speedX: (Math.random() - 0.5) * 2,
+                angle: Math.random() * 360,
+                spin: (Math.random() - 0.5) * 8
+            }));
+
+            let frame = 0;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.angle += p.spin;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.angle * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+                });
+                frame++;
+                if (frame < 140) {
+                    requestAnimationFrame(animate);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            animate();
+        }
+
+        // Start game on load
+        window.onload = () => {
+            resetGame(false);
+        };
+    </script>
+</body>
+</html>
